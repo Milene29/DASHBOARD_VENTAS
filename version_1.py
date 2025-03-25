@@ -313,7 +313,7 @@ def cargar_datos_excel():
     subprocess.run(["python", ruta_script])  # Ejecuta el script y espera a que termine
 
     # Paso 2: Leer el archivo Excel generado
-    ruta_excel = r"reporte_prometeo\corte_del_dia.xls"
+    ruta_excel = "reporte_prometeo/corte_del_dia.xls"
     df_corte = pd.read_excel(ruta_excel)
     
     
@@ -358,7 +358,7 @@ with col4:
         subprocess.run(["python", ruta_script])  # Ejecuta el script y espera a que termine
 
      # Paso 2: Leer el archivo Excel generado
-        ruta_excel = r"reporte_prometeo\corte_del_dia.xls"
+        ruta_excel = "reporte_prometeo/corte_del_dia.xls"
         df_corte = pd.read_excel(ruta_excel)
         evaluando_count, interesado_count = calcular_métricas(df_corte)
 
