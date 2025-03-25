@@ -1,2 +1,9 @@
 streamlit
 pandas
+pytz
+streamlit-aggrid==1.1.0
+pydrive
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
