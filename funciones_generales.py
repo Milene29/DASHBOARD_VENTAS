@@ -3,7 +3,6 @@ import pytz
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import io
-from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import pandas as pd
