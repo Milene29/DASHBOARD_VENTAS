@@ -5,17 +5,15 @@ from difflib import get_close_matches
 import funciones_generales as fg
 from st_aggrid import AgGrid, GridOptionsBuilder
 from datetime import datetime, timedelta
-
+import time
+import streamlit as st
+import time
 import subprocess
 
-# Set page config
-st.set_page_config(page_title="Streamlit Dashboard", layout="wide")
 
+st.write(f"Última actualización: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+# Parámetro de intervalo de refresco en segundos
 
-
-# Define function to get today's date in Lima timezone
-
-@st.cache_data
 def load_data():
     # Cargar datos de pagos reales
 
@@ -27,34 +25,14 @@ def load_data():
     
     return df,df_metas
 # Load data
+df, df_metas = load_data()
 
-if st.button("Actualizar data"):
-    st.cache_data.clear()  # Limpiar la caché
-    df,df_metas = load_data()
-    print("Boton 1")
-else:
-    df,df_metas = load_data()
-# Mostrar algunos datos para verificar que funcionó
-
-st.markdown(
-    """   
-    <h1 style="
-        background: linear-gradient(90deg, #1E90FF, #8A2BE2, #4169E1); 
-        -webkit-background-clip: text; 
-        -webkit-text-fill-color: transparent; 
-        font-size: 50px; 
-        text-align: center; 
-        font-weight: bold; 
-        margin-bottom: 20px;">
-        VENTAS UCAL 25.1
-    </h1>
-    """,
-    unsafe_allow_html=True
-)
-
-# Helper function to format numbers with commas
-def format_with_commas(number):
-    return f"{number:,}"
+# Botón manual para refrescar
+boton = st.button("Actualizar data manuealmente")
+refresh_interval = 120
+if boton or time.time() % refresh_interval == 0:
+    st.rerun()
+# Forzar recarga automática
 
 # Define logic to classify careers into worlds
 def clasificar_mundo(ult_programa_interes):
@@ -189,24 +167,26 @@ with st.sidebar:
 ##------------------------------------------------filtro fecha --------------------------------------------
 min_fecha = filtered_df['Fecha de Pago'].min()
 max_fecha = filtered_df['Fecha de Pago'].max()
+col1,col2=st.columns([0.5,2])
+with col1:
+    rango_fechas = st.date_input(
+                    "Selecciona el rango de fechas",
+                    value=(pd.to_datetime(min_fecha).date(), pd.to_datetime(max_fecha).date()),  # Convertir str a datetime.date
+                    help="Selecciona las fechas para filtrar los datos de ventas por carrera ."
+                )
 
-
-rango_fechas = st.date_input(
-                "Selecciona el rango de fechas",
-                value=(pd.to_datetime(min_fecha).date(), pd.to_datetime(max_fecha).date()),  # Convertir str a datetime.date
-                help="Selecciona las fechas para filtrar los datos de conversión ."
+        
+    rango_fechas_str = (
+                rango_fechas[0].strftime("%Y-%m-%d"),
+                rango_fechas[1].strftime("%Y-%m-%d")
             )
 
-    
-rango_fechas_str = (
-            rango_fechas[0].strftime("%Y-%m-%d"),
-            rango_fechas[1].strftime("%Y-%m-%d")
-        )
-
-filtered_df = filtered_df[
-            (filtered_df['Fecha de Pago'] >= rango_fechas_str[0]) &
-            (filtered_df['Fecha de Pago'] <= rango_fechas_str[1])
+    filtered_df = filtered_df[
+                (filtered_df['Fecha de Pago'] >= rango_fechas_str[0]) &
+                (filtered_df['Fecha de Pago'] <= rango_fechas_str[1])
         ]
+with col2:
+    st.write("")
 ## ----------------------------------------------------------------------------------------------------
 
 
@@ -219,14 +199,18 @@ filtered_df_2['Ventas Regular'] = (filtered_df_2['Horario de Estudio'] != 'RE').
 filtered_df_2['Ventas Distancia'] = (filtered_df_2['Horario de Estudio'] == 'RE').astype(int)  # Lo que es RE es Distancia
 
 tabla_metricas = filtered_df_2.groupby('Carrera').agg(
-    Regular=('Ventas Regular', 'sum'),
+    Semi_Presencial=('Ventas Regular', 'sum'),
     Distancia=('Ventas Distancia', 'sum')
 ).reset_index()
+# Agregar columna de Total por fila
+tabla_metricas['Total'] = tabla_metricas['Semi_Presencial'] + tabla_metricas['Distancia']
 
 # Calcular el total y agregarlo como una fila adicional
-total_regular = tabla_metricas['Regular'].sum()
+# Calcular el total general y agregarlo como una fila adicional
+total_regular = tabla_metricas['Semi_Presencial'].sum()
 total_distancia = tabla_metricas['Distancia'].sum()
-total_row = pd.DataFrame({'Carrera': ['TOTAL'], 'Regular': [total_regular], 'Distancia': [total_distancia]})
+total_total = tabla_metricas['Total'].sum()
+total_row = pd.DataFrame({'Carrera': ['TOTAL'], 'Semi_Presencial': [total_regular], 'Distancia': [total_distancia], 'Total': [total_total]})
 
 # Concatenar el total a la tabla
 tabla_metricas = pd.concat([tabla_metricas, total_row], ignore_index=True)
@@ -234,16 +218,16 @@ tabla_metricas = pd.concat([tabla_metricas, total_row], ignore_index=True)
 # Configurar tabla con AgGrid
 gb = GridOptionsBuilder.from_dataframe(tabla_metricas)
 gb.configure_side_bar()
-gb.configure_column("Carrera", header_name="CARRERA 🎓", cellStyle={'fontWeight': 'bold'})
-gb.configure_default_column(groupable=False, value=True, enableRowGroup=True, editable=True)
+gb.configure_column("Carrera", header_name="CARRERA 🎓", cellStyle={'color': 'black'})
+gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, editable=True)
 grid_options = gb.build()
 
-col1,col2,col3,col4=st.columns([1.8,0.1,1,1])
+col1,col2,col3,col4=st.columns([4,0.1,0.8,0.6])
 # Mostrar tabla en Streamlit
 
 with col1:
-    st.write("📊 **MATRIZ DE VENTAS POR CARRERA**")
-    AgGrid(tabla_metricas, gridOptions=grid_options, fit_columns_on_grid_load=False, height=320, theme="blue", width='80%')
+    st.write("📊 **Matriz de Ventas por Carrera**")
+    AgGrid(tabla_metricas, gridOptions=grid_options, fit_columns_on_grid_load=False, height=413, theme="blue", width='90%')
     
     
 with col2:
@@ -286,25 +270,27 @@ with col3:
 
     # Convertir a DataFrame
     tabla_pagos = pd.DataFrame(resumen)
+    
+    # Crear función para aplicar color según condiciones
+    def color_real(val, meta):
+        if val > meta:  # Verde si es mayor a la meta
+            return 'background-color: #b9e8ac; color: black;font-weight: bold;'
+        elif val == meta or val == meta - 1:  # Naranja si es igual o -1 de la meta
+            return 'background-color: #f7d394; color: black;font-weight: bold;'
+        elif val <= meta - 2:  # Rojo si es -2 o menor que la meta
+            return 'background-color: #f5877a; color: black; font-weight: bold;'
+        return ''
+    # Aplicar colores a la columna "Real"
+    tabla_pagos_style = tabla_pagos.style.apply(
+        lambda row: [color_real(row['Real'], row['Meta']) if col == "Real" else "" for col in row.index], axis=1
+    ).format({"Real": "{:,.0f}", "Meta": "{:,.0f}"})  # Formatear números sin decimales
+
     # Mostrar en Streamlit
     st.write(f"📊 **{titulo_semana}**")
-    st.dataframe(tabla_pagos.style.format({"Real": "{:,.0f}", "Meta": "{:,.0f}"}), hide_index=True)
+    st.dataframe(tabla_pagos_style, hide_index=True)
 # Función para filtrar el DataFrame y contar "Evaluando" e "Interesado"
 
 
-
-
-
-# Paso 1: Función para calcular las métricas
-def calcular_métricas(df_corte):
-    # Filtrar registros excluyendo el vendedor "TI Integrador"
-    df_corte = df_corte[df_corte["vendedor"] != "TI Integrador"]
-
-    # Filtrar y contar las filas de "Evaluando" y "Interesado"
-    evaluando_count = df_corte[df_corte["respuesta"] == "Evaluando"].shape[0]
-    interesado_count = df_corte[df_corte["respuesta"] == "Interesado"].shape[0]
-
-    return evaluando_count, interesado_count
 
 @st.cache_data
 def cargar_datos_excel():
@@ -315,107 +301,105 @@ def cargar_datos_excel():
     # Paso 2: Leer el archivo Excel generado
     ruta_excel = "reporte_prometeo/corte_del_dia.xls"
     df_corte = pd.read_excel(ruta_excel)
-    
-    
-    
+            
     return df_corte
 
-df_corte = cargar_datos_excel()
-evaluando_count, interesado_count = calcular_métricas(df_corte)
+   
+if boton:
+    st.cache_data.clear()
+    df_corte = cargar_datos_excel()
+else:
+    df_corte = cargar_datos_excel()
+    
+
+nombre_mapping = {
+    "Rosa Natalia Ugarte Chavez": "Rosa Ugarte",
+    "Sergio Valderrama Rodriguez": "Sergio Valderrama",
+    "Daniel Enrique Zapata Alvarado": "Daniel Zapata",
+    "INGRID GUILLERMO RIVERA": "Ingrid Guillermo",
+    "Fabiola Galindo": "Fabiola Galindo",
+    "Rosmery Enriquez": "Rosmery Enriquez",
+    "Andrea Alejandra Crisanto Navarro":"Andrea Crisanto",
+    "ERWIN TERIE VITAL AVILA":"Erwyn Terie",
+    "Andrea Araujo Antara":"Andrea Araujo"
+}
+
+
+df_corte['vendedor'] = df_corte['vendedor'].replace(nombre_mapping)
+
+
+col1,col2=st.columns([3.1,2.5])   
+with col1:
+    st.write("")
+with col2:
+        def crear_tabla_asesores(df_corte, df_ventas):
+            # Filtrar datos excluyendo "TI Integrador"
+            df_corte = df_corte[df_corte["vendedor"] != "TI Integrador"]
+
+            # Crear un DataFrame vacío para la tabla final
+            tabla_final = pd.DataFrame(columns=["Asesor",  "Interesado", "Evaluando","Visitas", "PP","Cargos", "Ventas"])
+            
+            # Obtener lista única de asesores en df_corte (sin "TI Integrador")
+            asesores = df_corte["vendedor"].unique()
+            df_ventas["Asesor Homologado"] = df_ventas["Asesor Homologado"].fillna("").astype(str)
+
+            # Recorrer cada asesor y calcular Evaluando, Interesado
+            for asesor in asesores:
+                evaluando_count = df_corte[(df_corte["vendedor"] == asesor) & (df_corte["respuesta"] == "Evaluando")].shape[0]
+                interesado_count = df_corte[(df_corte["vendedor"] == asesor) & (df_corte["respuesta"] == "Interesado")].shape[0]
+
+                # Buscar el nombre más cercano del asesor en la base df_ventas usando get_close_matches
+                nombre_ventas = get_close_matches(asesor, df_ventas["Asesor Homologado"].unique(), n=1, cutoff=0.6)
+                nombre_ventas = nombre_ventas[0] if nombre_ventas else asesor  # Usar nombre encontrado o el original si no hay match
+
+                # Obtener la cantidad de ventas de ese asesor desde df_ventas (filtrando ventas del día actual)
+                ventas_count = df_ventas[(df_ventas["Asesor Homologado"] == nombre_ventas) & (df_ventas["Fecha de Pago"] == pd.Timestamp.today().normalize())].shape[0]
+
+                # Agregar los datos del asesor a la tabla final (Visitas y Cargos quedarán vacías para completar luego)
+                tabla_final = pd.concat([tabla_final, pd.DataFrame([[asesor,  interesado_count,evaluando_count, 0, 0, 0,ventas_count]],
+                                                                columns=tabla_final.columns)], ignore_index=True)
+            
+            return tabla_final
+        # Crear la tabla final
+
+        tabla_final = crear_tabla_asesores(df_corte, df)
+        # Mostrar la tabla en Streamlit
+        st.write("📊 **Gestión de Ventas por Asesor**")
+        editable_tabla_final = st.data_editor(
+            tabla_final,
+            key="tabla_final",
+            hide_index=True,
+            disabled=["Asesor", "Evaluando", "Interesado", "Ventas"],
+        )
+                
+        # Sumar totales de columnas específicas desde la tabla editable
+        total_visitas = editable_tabla_final["Visitas"].sum()
+        total_cargos = editable_tabla_final["Cargos"].sum()
+        total_evaluando = editable_tabla_final["Evaluando"].sum()
+        total_interesado = editable_tabla_final["Interesado"].sum()
+        total_ventas = editable_tabla_final["Ventas"].sum()
+        total_pp = editable_tabla_final["PP"].sum()
 
 hoy_str = hoy.strftime("%d %B")  # Fecha en formato 'día mes'
 
-# Filtrar pagos reales del día de hoy
-df["Fecha de Pago"] = pd.to_datetime(df["Fecha de Pago"])  # Asegurar formato datetime
-pagos_hoy = df[df["Fecha de Pago"].dt.date == hoy.date()].shape[0]  # Cantidad de pagos del día actual
-
-
     # Crear DataFrame con las filas predefinidas y valores iniciales en 0
 data = {
-    "Métrica": ["Ventas", "PP", "Cargos", "Evaluando", "Interesado", "Visitas"],
-    "Cantidad": [pagos_hoy, 0, 0, evaluando_count, interesado_count, 0],
+    "Métrica": [ "Evaluando", "Interesado","Visitas","PP", "Cargos", "Ventas"],
+    "Cantidad": [  total_evaluando,total_interesado,total_visitas, total_pp,  total_cargos,total_ventas],
 }
 df_resumen = pd.DataFrame(data)
-        
+    
+
+
+      
+    
 print("............................................")   
 with col4:
-    st.write(f"📊 **Tabla Resumen - Fecha: {hoy_str}**")
-    if not st.button("Refrescar tabla"):
-        
-            # Permitir que el usuario edite la tabla (excepto el campo 'Ventas')
-        editable_df = st.data_editor(
-            df_resumen,
-            disabled=["Ventas","Evaluando","Interesado"],  # Deshabilitar edición de la fila 'Ventas'
-            key="tabla_resumen",
-            hide_index=True,
-            )
-        print("salio 22")
-    else:
-        print("entro")
-        # Ejecutar script externo
-
-        ruta_script = "CORTE_2.PY"
-        subprocess.run(["python", ruta_script])  # Ejecuta el script y espera a que termine
-
-     # Paso 2: Leer el archivo Excel generado
-        ruta_excel = "reporte_prometeo/corte_del_dia.xls"
-        df_corte = pd.read_excel(ruta_excel)
-        evaluando_count, interesado_count = calcular_métricas(df_corte)
-
-        # Actualizar la tabla con nuevos valores
-        data = {
-            "Métrica": ["Ventas", "PP", "Cargos", "Evaluando", "Interesado", "Visitas"],
-            "Cantidad": [0, 0, 0, evaluando_count, interesado_count, 0],
-        }
-        df_resumen = pd.DataFrame(data)
-
-        # Actualizar la tabla editable con los datos recalculados
-        editable_df = st.data_editor(
-            df_resumen,
-            disabled=["Ventas", "Evaluando", "Interesado"],
-            key="tabla_resumen",
-            hide_index=True,
-            
-        )
-        print("salio")
+    st.write(f"📊 **Resumen del día - {hoy_str}**")
+    st.dataframe(df_resumen, hide_index=True)
+    print("salio 22")
     
-        
-        
-        
-        
-print("............................................")   
-print(df["Asesor Homologado"])    
-def crear_tabla_asesores(df_corte, df_ventas):
-    # Filtrar datos excluyendo "TI Integrador"
-    df_corte = df_corte[df_corte["vendedor"] != "TI Integrador"]
-
-    # Crear un DataFrame vacío para la tabla final
-    tabla_final = pd.DataFrame(columns=["Asesor", "Evaluando", "Interesado", "Visitas", "Cargos", "Ventas"])
     
-    # Obtener lista única de asesores en df_corte (sin "TI Integrador")
-    asesores = df_corte["vendedor"].unique()
-    df_ventas["Asesor Homologado"] = df_ventas["Asesor Homologado"].fillna("").astype(str)
-
-    # Recorrer cada asesor y calcular Evaluando, Interesado
-    for asesor in asesores:
-        evaluando_count = df_corte[(df_corte["vendedor"] == asesor) & (df_corte["respuesta"] == "Evaluando")].shape[0]
-        interesado_count = df_corte[(df_corte["vendedor"] == asesor) & (df_corte["respuesta"] == "Interesado")].shape[0]
-
-        # Buscar el nombre más cercano del asesor en la base df_ventas usando get_close_matches
-        nombre_ventas = get_close_matches(asesor, df_ventas["Asesor Homologado"].unique(), n=1, cutoff=0.6)
-        nombre_ventas = nombre_ventas[0] if nombre_ventas else asesor  # Usar nombre encontrado o el original si no hay match
-
-        # Obtener la cantidad de ventas de ese asesor desde df_ventas (filtrando ventas del día actual)
-        ventas_count = df_ventas[(df_ventas["Asesor Homologado"] == nombre_ventas) & (df_ventas["Fecha de Pago"] == pd.Timestamp.today().normalize())].shape[0]
-
-        # Agregar los datos del asesor a la tabla final (Visitas y Cargos quedarán vacías para completar luego)
-        tabla_final = pd.concat([tabla_final, pd.DataFrame([[asesor, evaluando_count, interesado_count, 0, 0, ventas_count]],
-                                                          columns=tabla_final.columns)], ignore_index=True)
-    
-    return tabla_final
-# Crear la tabla final
-print(df.columns)
-tabla_final = crear_tabla_asesores(df_corte, df)
-# Mostrar la tabla en Streamlit
-st.write("📊 **GESTIÓN DE VENTAS X ASESOR**")
-st.dataframe(tabla_final,hide_index=True) 
+time.sleep(refresh_interval)
+# Configurar auto-refresh con st.rerun basado en el intervalo seleccionado
+st.rerun()  
