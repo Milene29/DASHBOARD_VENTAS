@@ -10,6 +10,7 @@ import streamlit as st
 import time
 import subprocess
 
+st.set_page_config(layout="wide")
 
 st.write(f"Última actualización: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 # Parámetro de intervalo de refresco en segundos
@@ -28,11 +29,24 @@ def load_data():
 df, df_metas = load_data()
 
 # Botón manual para refrescar
-boton = st.button("Actualizar data manuealmente")
-refresh_interval = 120
-if boton or time.time() % refresh_interval == 0:
+boton = st.button("Actualizar data")
+refresh_interval = 900
+if boton :
     st.rerun()
-# Forzar recarga automática
+st.write(
+    """
+    <style>
+    .colored-title {
+        color: #1E90FF;  /* Cambia el color */
+        font-size: 35px;  /* Ajusta el tamaño */
+        font-weight: bold;
+        text-align: center;
+    }
+    </style>
+    <div class="colored-title">Ventas UCAL 25.1</div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Define logic to classify careers into worlds
 def clasificar_mundo(ult_programa_interes):
@@ -222,7 +236,7 @@ gb.configure_column("Carrera", header_name="CARRERA 🎓", cellStyle={'color': '
 gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, editable=True)
 grid_options = gb.build()
 
-col1,col2,col3,col4=st.columns([4,0.1,0.8,0.6])
+col1,col2,col3,col4=st.columns([1.8,0.1,0.8,0.6])
 # Mostrar tabla en Streamlit
 
 with col1:
