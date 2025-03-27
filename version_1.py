@@ -22,31 +22,24 @@ def load_data():
     file_id = '1uML9hmrdOZVQ3Fa1GLDo7XkoWRbZSPgAcKYV1aFd6xs'  # ID del archivo específico
     # Descargar y leer la hoja específica del archivo Excel
     df = fg.descargar_archivo_drive(file_id)
+    return df
+
+@st.cache_data
+def load_data2():
+    # Cargar datos de pagos reales
     df_metas = pd.read_excel("Pagos_Meta.xlsx", sheet_name="Meta")
     
-    return df,df_metas
+    return df_metas
 # Load data
-df, df_metas = load_data()
+df = load_data()
+# Load data
+df_metas = load_data2()
 
 # Botón manual para refrescar
 boton = st.button("Actualizar data")
 refresh_interval = 900
 if boton :
     st.rerun()
-st.write(
-    """
-    <style>
-    .colored-title {
-        color: #1E90FF;  /* Cambia el color */
-        font-size: 35px;  /* Ajusta el tamaño */
-        font-weight: bold;
-        text-align: center;
-    }
-    </style>
-    <div class="colored-title">Ventas UCAL 25.1</div>
-    """,
-    unsafe_allow_html=True
-)
 
 # Define logic to classify careers into worlds
 def clasificar_mundo(ult_programa_interes):
@@ -236,7 +229,7 @@ gb.configure_column("Carrera", header_name="CARRERA 🎓", cellStyle={'color': '
 gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, editable=True)
 grid_options = gb.build()
 
-col1,col2,col3,col4=st.columns([1.8,0.1,0.8,0.6])
+col1,col2,col3,col4=st.columns([1.8,0.1,0.7,0.6])
 # Mostrar tabla en Streamlit
 
 with col1:
@@ -306,7 +299,7 @@ with col3:
 
 
 
-@st.cache_data
+
 def cargar_datos_excel():
         # Paso 1: Ejecutar el script `CORTE_2.PY`
     ruta_script = "CORTE_2.PY"
