@@ -3,7 +3,6 @@ import pandas as pd
 import datetime
 from difflib import get_close_matches
 import funciones_generales as fg
-from st_aggrid import AgGrid, GridOptionsBuilder
 from datetime import datetime, timedelta
 import time
 import streamlit as st
@@ -15,6 +14,20 @@ st.set_page_config(layout="wide")
 st.write(f"Última actualización: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 # Parámetro de intervalo de refresco en segundos
 
+st.write(
+    """
+    <style>
+    .colored-title {
+        color: #1E90FF;  /* Cambia el color */
+        font-size: 30px;  /* Ajusta el tamaño */
+        font-weight: bold;
+        text-align: center;
+    }
+    </style>
+    <div class="colored-title">Ventas UCAL 25.1</div>
+    """,
+    unsafe_allow_html=True
+)
 def load_data():
     # Cargar datos de pagos reales
 
@@ -28,7 +41,6 @@ def load_data():
 def load_data2():
     # Cargar datos de pagos reales
     df_metas = pd.read_excel("Pagos_Meta.xlsx", sheet_name="Meta")
-    
     return df_metas
 # Load data
 df = load_data()
@@ -198,8 +210,7 @@ with col2:
 
 
 # FILTRAR LOS DATOS
-filtered_df_2 = filtered_df[filtered_df['Convalidación'] == "No Convo"]
-
+filtered_df_2 = filtered_df
 
 # CREAR LAS COLUMNAS DE VENTAS REGULAR Y VENTAS DISTANCIA
 filtered_df_2['Ventas Regular'] = (filtered_df_2['Horario de Estudio'] != 'RE').astype(int)  # Todo lo que NO es RE es Regular
@@ -209,33 +220,65 @@ tabla_metricas = filtered_df_2.groupby('Carrera').agg(
     Semi_Presencial=('Ventas Regular', 'sum'),
     Distancia=('Ventas Distancia', 'sum')
 ).reset_index()
+tabla_metricas = tabla_metricas.rename(columns={
+    'Semi_Presencial':'Semi Presencial'
+})
 # Agregar columna de Total por fila
-tabla_metricas['Total'] = tabla_metricas['Semi_Presencial'] + tabla_metricas['Distancia']
+tabla_metricas['Total'] = tabla_metricas['Semi Presencial'] + tabla_metricas['Distancia']
 
 # Calcular el total y agregarlo como una fila adicional
 # Calcular el total general y agregarlo como una fila adicional
-total_regular = tabla_metricas['Semi_Presencial'].sum()
+total_regular = tabla_metricas['Semi Presencial'].sum()
 total_distancia = tabla_metricas['Distancia'].sum()
 total_total = tabla_metricas['Total'].sum()
-total_row = pd.DataFrame({'Carrera': ['TOTAL'], 'Semi_Presencial': [total_regular], 'Distancia': [total_distancia], 'Total': [total_total]})
+total_row = pd.DataFrame({'Carrera': ['TOTAL'], 'Semi Presencial': [total_regular], 'Distancia': [total_distancia], 'Total': [total_total]})
 
 # Concatenar el total a la tabla
 tabla_metricas = pd.concat([tabla_metricas, total_row], ignore_index=True)
 
-# Configurar tabla con AgGrid
-gb = GridOptionsBuilder.from_dataframe(tabla_metricas)
-gb.configure_side_bar()
-gb.configure_column("Carrera", header_name="CARRERA 🎓", cellStyle={'color': 'black'})
-gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, editable=True)
-grid_options = gb.build()
 
-col1,col2,col3,col4=st.columns([1.8,0.1,0.7,0.6])
+def style_dataframe(df):
+    return df.style.set_table_styles(
+        [
+            
+            
+            {'selector': 'thead th',  # Estilos solo para las cabeceras
+             'props': [
+                 ('background-color', '#001f54'),  # Azul oscuro
+                 ('color', 'white'),               # Texto blanco
+                 ('font-weight', 'bold'),          # Negrita en cabeceras
+                 ('text-align', 'center'),
+                 ('font-family', 'Arial, sans-serif'),
+                 ('font-size', '14px'),
+                 ('width', '80px')   
+             ]},
+            {'selector': 'thead th:nth-child(1)',  # La primera columna ("Carrera")
+             'props': [('width', '390px'),  # Ancho mayor solo para "Carrera"
+                       ('text-align', 'left'),
+]  # Alineación a la izquierda opcional
+            },  
+            {'selector': 'td, th',  # Bordes en toda la tabla
+             'props': [('border', '0.5px solid #001f54')]},  # Bordes azul oscuro
+            {'selector': 'tr:nth-child(even) td',  # Filas pares
+             'props': [('background-color', '#f4f4f4')]}  # Fondo gris claro alternado
+        ]
+    ).set_properties(
+        subset=['Semi Presencial', 'Distancia', 'Total'],
+        **{'text-align': 'center'}).apply(
+        lambda row: ['font-weight: bold; background-color: #f8d7da; color: black;' if row.name == len(df) - 1 else '' for _ in row], 
+        axis=1
+    )
+
+
+
+styled_df_html = style_dataframe(tabla_metricas).hide(axis='index').to_html()
+
+col1,col2,col3,col4=st.columns([1.8,0.1,0.9,0.6])
 # Mostrar tabla en Streamlit
 
 with col1:
     st.write("📊 **Matriz de Ventas por Carrera**")
-    AgGrid(tabla_metricas, gridOptions=grid_options, fit_columns_on_grid_load=False, height=413, theme="blue", width='90%')
-    
+    st.markdown(styled_df_html, unsafe_allow_html=True)
     
 with col2:
     st.write("")
@@ -244,21 +287,18 @@ with col3:
     hoy = datetime.today()
     inicio_semana = hoy - timedelta(days=hoy.weekday()+1)  # Lunes de esta semana
     fin_semana = inicio_semana + timedelta(days=7)  # Domingo de esta semana
-    print(".-----------------------------------------")
     inicio_semana2 = hoy - timedelta(days=hoy.weekday()) 
     # Formatear fechas
     inicio_semana_str = inicio_semana2.strftime("%d %B")
     fin_semana_str = fin_semana.strftime("%d %B")
-    titulo_semana = f"Ventas Semana {inicio_semana_str} - {fin_semana_str}"
+    titulo_semana = f"Ventas Semana: {inicio_semana_str} - {fin_semana_str}"
 
     # Filtrar pagos reales de la semana en curso
     df["Fecha de Pago"] = pd.to_datetime(df["Fecha de Pago"])
     df_semana = df[(df["Fecha de Pago"] >= inicio_semana) & (df["Fecha de Pago"] <= fin_semana)]
-    print(df_semana["Fecha de Pago"])
     # Obtener metas de pagos de la semana en curso
     df_metas["Fecha"] = pd.to_datetime(df_metas["Fecha"])
     df_metas_semana = df_metas[(df_metas["Fecha"] >= inicio_semana) & (df_metas["Fecha"] <= fin_semana)]
-    print(df_metas_semana["Fecha"])
     # Crear tabla resumen
     dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     resumen = {"Día": dias_semana, "Real": [], "Meta": []}
@@ -271,32 +311,71 @@ with col3:
         resumen["Real"].append(pagos_reales)
         resumen["Meta"].append(meta_pagos if not pd.isna(meta_pagos) else 0)
     # Agregar fila "Total"
-    resumen["Día"].append("Total")
+    resumen["Día"].append("TOTAL")
     resumen["Real"].append(sum(resumen["Real"]))
     resumen["Meta"].append(sum(resumen["Meta"]))
 
     # Convertir a DataFrame
     tabla_pagos = pd.DataFrame(resumen)
     
-    # Crear función para aplicar color según condiciones
-    def color_real(val, meta):
-        if val > meta:  # Verde si es mayor a la meta
-            return 'background-color: #b9e8ac; color: black;font-weight: bold;'
-        elif val == meta or val == meta - 1:  # Naranja si es igual o -1 de la meta
-            return 'background-color: #f7d394; color: black;font-weight: bold;'
-        elif val <= meta - 2:  # Rojo si es -2 o menor que la meta
-            return 'background-color: #f5877a; color: black; font-weight: bold;'
-        return ''
-    # Aplicar colores a la columna "Real"
-    tabla_pagos_style = tabla_pagos.style.apply(
-        lambda row: [color_real(row['Real'], row['Meta']) if col == "Real" else "" for col in row.index], axis=1
-    ).format({"Real": "{:,.0f}", "Meta": "{:,.0f}"})  # Formatear números sin decimales
 
     # Mostrar en Streamlit
     st.write(f"📊 **{titulo_semana}**")
-    st.dataframe(tabla_pagos_style, hide_index=True)
-# Función para filtrar el DataFrame y contar "Evaluando" e "Interesado"
+    def style_dataframe_general(df):
+        styles = []
+        
+        # Agregar estilos para la cabecera
+        styles.append({
+            'selector': 'thead th',
+            'props': [
+                ('background-color', '#001f54'),  # Azul marino
+                ('color', 'white'),
+                ('font-family', 'Arial, sans-serif'),
+                ('font-size', '13px'),
+                ('text-align', 'center')
+            ]
+        })
 
+        # Agregar estilos dinámicos (colores según condiciones) para cada fila basada en 'Real'
+        for i, row in df.iterrows():
+            if row['Real'] > row['Meta']:
+                styles.append({
+                    'selector': f'tr:nth-child({i + 1}) td:nth-child(2)',  # "Real" es la 2ª columna
+                    'props': [('background-color', '#b9e8ac'), ('color', 'black'), ('font-weight', 'bold')]
+                })
+            elif row['Real'] == row['Meta'] or row['Real'] == row['Meta'] - 1:
+                styles.append({
+                    'selector': f'tr:nth-child({i + 1}) td:nth-child(2)',  # Aplicado solo a la 2ª columna
+                    'props': [('background-color', '#f7d394'), ('color', 'black'), ('font-weight', 'bold')]
+                })
+            elif row['Real'] <= row['Meta'] - 2:
+                styles.append({
+                    'selector': f'tr:nth-child({i + 1}) td:nth-child(2)',
+                    'props': [('background-color', '#f5877a'), ('color', 'black'), ('font-weight', 'bold')]
+                })
+
+        # Aplicar estilos generales (bordes)
+        styles.append({
+            'selector': 'td, th',
+            'props': [('border', '0.5px solid #001f54')]
+        })
+ 
+    # Aplicar estilos dinámicos a toda la tabla
+        return df.style.set_table_styles(styles).set_properties(
+        subset=['Real', 'Meta'],  # Centrando las columnas "Real" y "Meta"
+        **{'text-align': 'center'}
+    ).apply(
+        lambda row: ['font-weight: bold;background-color: white !important;color: black;' if row.name == len(df) - 1 else '' for _ in row], 
+        axis=1
+    )
+
+
+
+    # Aplicar estilos y ocultar índice
+    styled_df_html = style_dataframe_general(tabla_pagos).hide(axis='index').to_html()
+
+    # Mostrar en Streamlit
+    st.markdown(styled_df_html, unsafe_allow_html=True)
 
 
 
@@ -308,7 +387,7 @@ def cargar_datos_excel():
     # Paso 2: Leer el archivo Excel generado
     ruta_excel = "reporte_prometeo/corte_del_dia.xls"
     df_corte = pd.read_excel(ruta_excel)
-            
+    print("reporte degerneao ")      
     return df_corte
 
    
@@ -371,12 +450,30 @@ with col2:
 
         tabla_final = crear_tabla_asesores(df_corte, df)
         # Mostrar la tabla en Streamlit
+
         st.write("📊 **Gestión de Ventas por Asesor**")
         editable_tabla_final = st.data_editor(
-            tabla_final,
-            key="tabla_final",
-            hide_index=True,
-            disabled=["Asesor", "Evaluando", "Interesado", "Ventas"],
+        tabla_final,
+        key="tabla_final",
+        hide_index=True,
+        disabled=["Asesor", "Evaluando", "Interesado", "Ventas"],
+    # Aplicar opciones de colores y centrado en el header con tema de Streamlit
+    use_container_width=True,
+)
+        
+        # CSS adicional (inyectar estilo al header, se aplica parcialmente)
+        st.markdown(
+            """
+            <style>
+            .stDataFrame thead tr th {
+                background-color: #1f4068 !important;
+                color: white !important;
+                font-weight: bold !important;
+                text-align: center !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
         )
                 
         # Sumar totales de columnas específicas desde la tabla editable
@@ -395,17 +492,33 @@ data = {
     "Cantidad": [  total_evaluando,total_interesado,total_visitas, total_pp,  total_cargos,total_ventas],
 }
 df_resumen = pd.DataFrame(data)
-    
+def style_dataframe(df):
+    return df.style.set_table_styles(
+        [   
+            {'selector': 'thead th',  # Estilos solo para las cabeceras
+             'props': [
+                 ('background-color', '#001f54'),  # Azul marino
+                 ('color', 'white'),  # Texto blanco
+                 ('font-family', 'Arial, sans-serif'),
+                 ('font-size', '14px'),
+                 ('text-align', 'center')
+             ]
+            },
+            {'selector': 'tr:nth-child(even) td',  # Estilo para las filas pares
+             'props': [('background-color', '#f2f2f2')]},  # Color plomo claro
+            {'selector': 'td, th',  # Bordes en toda la tabla
+             'props': [('border', '0.5px solid #001f54')]}  # Bordes en azul marino
+        ]
+    ).set_properties(
+        subset=['Cantidad'],  # Centrando columnas numéricas
+        **{'text-align': 'center'}
+    ) # Ocultar índice
+# Estilizar el DataFrame y mostrarlo en Streamlit como HTML
+styled_df_html3 = style_dataframe(df_resumen).hide(axis='index').to_html()
 
-
-      
-    
-print("............................................")   
 with col4:
-    st.write(f"📊 **Resumen del día - {hoy_str}**")
-    st.dataframe(df_resumen, hide_index=True)
-    print("salio 22")
-    
+    st.write(f"📊 **Resumen del día: {hoy_str}**")
+    st.markdown(styled_df_html3, unsafe_allow_html=True)
     
 time.sleep(refresh_interval)
 # Configurar auto-refresh con st.rerun basado en el intervalo seleccionado
