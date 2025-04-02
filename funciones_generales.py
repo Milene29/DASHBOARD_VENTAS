@@ -19,10 +19,13 @@ def autenticar_drive():
     if gauth.credentials is None or gauth.access_token_expired:
         # Si no hay credenciales o han expirado, autenticación manual
         gauth.LocalWebserverAuth()  
-        gauth.SaveCredentialsFile("mycreds.txt")
+    elif gauth.access_token_expired:
+        # Refresh them if expired
+        gauth.Refresh()
     else:
+        # Initialize the saved creds
         gauth.Authorize()
-
+    gauth.SaveCredentialsFile("mycreds.txt")
     drive = GoogleDrive(gauth)
     service = build('drive', 'v3', credentials=gauth.credentials)
     return service
