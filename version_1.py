@@ -452,30 +452,21 @@ with col2:
         # Mostrar la tabla en Streamlit
 
         st.write("📊 **Gestión de Ventas por Asesor**")
+
+        st.markdown("""
+                <style>
+                    /* Oculta los encabezados de la tabla */
+                    div[data-testid="stDataFrame"] thead {
+                        display: none;
+                    }
+                </style>
+            """, unsafe_allow_html=True)
         editable_tabla_final = st.data_editor(
         tabla_final,
         key="tabla_final",
         hide_index=True,
         disabled=["Asesor", "Evaluando", "Interesado", "Ventas"],
-    # Aplicar opciones de colores y centrado en el header con tema de Streamlit
-    use_container_width=True,
-)
-        
-        # CSS adicional (inyectar estilo al header, se aplica parcialmente)
-        st.markdown(
-            """
-            <style>
-            .stDataFrame thead tr th {
-                background-color: #1f4068 !important;
-                color: white !important;
-                font-weight: bold !important;
-                text-align: center !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-                
+) 
         # Sumar totales de columnas específicas desde la tabla editable
         total_visitas = editable_tabla_final["Visitas"].sum()
         total_cargos = editable_tabla_final["Cargos"].sum()
