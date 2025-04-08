@@ -3,7 +3,6 @@ import pandas as pd
 import datetime
 from difflib import get_close_matches
 import funciones_generales as fg
-from st_aggrid import AgGrid, GridOptionsBuilder
 from datetime import datetime, timedelta
 import time
 import streamlit as st
@@ -318,21 +317,18 @@ with col3:
     hoy = datetime.today()
     inicio_semana = hoy - timedelta(days=hoy.weekday()+1)  # Lunes de esta semana
     fin_semana = inicio_semana + timedelta(days=7)  # Domingo de esta semana
-    print(".-----------------------------------------")
     inicio_semana2 = hoy - timedelta(days=hoy.weekday()) 
     # Formatear fechas
     inicio_semana_str = inicio_semana2.strftime("%d %B")
     fin_semana_str = fin_semana.strftime("%d %B")
-    titulo_semana = f"Ventas Semana {inicio_semana_str} - {fin_semana_str}"
+    titulo_semana = f"Ventas Semana: {inicio_semana_str} - {fin_semana_str}"
 
     # Filtrar pagos reales de la semana en curso
     df["Fecha de Pago"] = pd.to_datetime(df["Fecha de Pago"])
     df_semana = df[(df["Fecha de Pago"] >= inicio_semana) & (df["Fecha de Pago"] <= fin_semana)]
-    print(df_semana["Fecha de Pago"])
     # Obtener metas de pagos de la semana en curso
     df_metas["Fecha"] = pd.to_datetime(df_metas["Fecha"])
     df_metas_semana = df_metas[(df_metas["Fecha"] >= inicio_semana) & (df_metas["Fecha"] <= fin_semana)]
-    print(df_metas_semana["Fecha"])
     # Crear tabla resumen
     dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     resumen = {"Día": dias_semana, "Real": [], "Meta": []}
@@ -345,7 +341,7 @@ with col3:
         resumen["Real"].append(pagos_reales)
         resumen["Meta"].append(meta_pagos if not pd.isna(meta_pagos) else 0)
     # Agregar fila "Total"
-    resumen["Día"].append("Total")
+    resumen["Día"].append("TOTAL")
     resumen["Real"].append(sum(resumen["Real"]))
     resumen["Meta"].append(sum(resumen["Meta"]))
 
@@ -413,7 +409,7 @@ def cargar_datos_excel():
     subprocess.run(["python", ruta_script])  # Ejecuta el script y espera a que termine
 
     # Paso 2: Leer el archivo Excel generado
-    ruta_excel = "reporte_prometeo\corte_del_dia.xls"
+    ruta_excel = "reporte_prometeo/corte_del_dia.xls"
     df_corte = pd.read_excel(ruta_excel)
             
     return df_corte
