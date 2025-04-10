@@ -302,7 +302,7 @@ else:
         )
     styled_df_html = style_dataframe(tabla_metricas).hide(axis='index').to_html()
 
-col1,col2,col3,col4=st.columns([3,0.1,2.0,0.76])
+col1,col2,col3,col4=st.columns([3,0.1,1.7,0.8])
 # Mostrar tabla en Streamlit
 
 with col1:
