@@ -34,9 +34,21 @@ def load_data():
 
     # ID del archivo de Drive y hoja que quieres leer
     file_id = '1uML9hmrdOZVQ3Fa1GLDo7XkoWRbZSPgAcKYV1aFd6xs'  # ID del archivo específico
+
     # Descargar y leer la hoja específica del archivo Excel
     df = fg.descargar_archivo_drive(file_id)
+
     return df
+def load_data3():
+    # Cargar datos de pagos reales
+
+    # ID del archivo de Drive y hoja que quieres leer
+ # ID del archivo específico
+    file_id_2='1wLewUXO5ISe2qCDJnTXUf4WdGCA1z8DgP-GO55cUJVI'
+    # Descargar y leer la hoja específica del archivo Excel
+
+    df_252=fg.descargar_archivo_drive(file_id_2)
+    return df_252
 
 @st.cache_data
 def load_data2():
@@ -45,12 +57,18 @@ def load_data2():
     return df_metas
 # Load data
 df = load_data()
+df_252=load_data3()
 # Load data
 df_metas = load_data2()
 
 # Botón manual para refrescar
 boton = st.button("Actualizar data")
-
+col1,col2,col3=st.columns([1,1,2])
+with col2:
+    agrupacion_seleccionada = st.selectbox("Campaña: ", ["25.2", "25.1"])
+    df = df_252 if agrupacion_seleccionada == "25.2" else df
+with col3:
+    st.write("")    
 if boton :
     st.rerun()
 # Forzar recarga automática
@@ -159,7 +177,7 @@ with st.sidebar:
 ##------------------------------------------------filtro fecha --------------------------------------------
 min_fecha = filtered_df['Fecha de Pago'].min()
 max_fecha = filtered_df['Fecha de Pago'].max()
-col1,col2=st.columns([0.5,2])
+
 with col1:
     rango_fechas = st.date_input(
                     "Selecciona el rango de fechas",
@@ -177,8 +195,7 @@ with col1:
                 (filtered_df['Fecha de Pago'] >= rango_fechas_str[0]) &
                 (filtered_df['Fecha de Pago'] <= rango_fechas_str[1])
         ]
-with col2:
-    st.write("")
+
 ## ----------------------------------------------------------------------------------------------------
 
 print("++++++++++++++++++++++")
