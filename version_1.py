@@ -67,6 +67,13 @@ col1,col2,col3=st.columns([1,1,2])
 with col2:
     agrupacion_seleccionada = st.selectbox("Campaña: ", ["25.2", "25.1"])
     df = df_252 if agrupacion_seleccionada == "25.2" else df
+    df['Carrera'] = df_252['CARRERA'] if agrupacion_seleccionada == "25.2" else df['Carrera']
+    df['Convalidación'] = df_252['FLAG ACEPTO CONVA'] if agrupacion_seleccionada == "25.2" else df['Convalidación']
+    df['Horario de Estudio'] = df_252['HORARIO DE ESTUDIO'] if agrupacion_seleccionada == "25.2" else df['Horario de Estudio']
+    df['Tipo de Ingreso'] = df_252['TIPO DE INGRESO'] if agrupacion_seleccionada == "25.2" else df['Tipo de Ingreso']
+    df['Fecha de Pago'] = df_252['FECHA DE PAGO'] if agrupacion_seleccionada == "25.2" else df['Fecha de Pago']
+    df['Asesor Homologado'] = df_252['ASESOR HOMOLOGADO'] if agrupacion_seleccionada == "25.2" else df['Asesor Homologado']
+
 with col3:
     st.write("")    
 if boton :
@@ -286,7 +293,7 @@ else:
     tabla_metricas = pd.concat([tabla_metricas, total_row], ignore_index=True)
     
         
-    def style_dataframe(df):
+    def style_dataframe3(df):
         return df.style.set_table_styles(
             [
                 
@@ -317,7 +324,7 @@ else:
             lambda row: ['font-weight: bold; background-color: #f8d7da; color: black;' if row.name == len(df) - 1 else '' for _ in row], 
             axis=1
         )
-    styled_df_html = style_dataframe(tabla_metricas).hide(axis='index').to_html()
+    styled_df_html = style_dataframe3(tabla_metricas).hide(axis='index').to_html()
 
 col1,col2,col3,col4=st.columns([3,0.1,1.7,0.8])
 # Mostrar tabla en Streamlit
@@ -345,7 +352,9 @@ with col3:
     df_semana = df[(df["Fecha de Pago"] >= inicio_semana) & (df["Fecha de Pago"] <= fin_semana)]
     # Obtener metas de pagos de la semana en curso
     df_metas["Fecha"] = pd.to_datetime(df_metas["Fecha"])
+    
     df_metas_semana = df_metas[(df_metas["Fecha"] >= inicio_semana) & (df_metas["Fecha"] <= fin_semana)]
+    print(df_metas_semana)
     # Crear tabla resumen
     dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     resumen = {"Día": dias_semana, "Real": [], "Meta": []}
@@ -397,20 +406,17 @@ with col3:
                     'props': [('background-color', '#f5877a'), ('color', 'black'), ('font-weight', 'bold')]
                 })
 
-        # Aplicar estilos generales (bordes)
-        styles.append({
-            'selector': 'td, th',
-            'props': [('border', '0.5px solid #001f54')]
-        })
+            # Aplicar estilos generales (bordes)
+            styles.append({
+                'selector': 'td, th',
+                'props': [('border', '0.5px solid #001f54')]
+            })
  
-    # Aplicar estilos dinámicos a toda la tabla
-        return df.style.set_table_styles(styles).set_properties(
-        subset=['Real', 'Meta'],  # Centrando las columnas "Real" y "Meta"
-        **{'text-align': 'center'}
-    ).apply(
+         # Aplicar estilos dinámicos a toda la tabla
+        return df.style.set_table_styles(styles).set_properties(subset=['Real', 'Meta'],  # Centrando las columnas "Real" y "Meta"
+        **{'text-align': 'center'}).apply(
         lambda row: ['font-weight: bold;background-color: white !important;color: black;' if row.name == len(df) - 1 else '' for _ in row], 
-        axis=1
-    )
+        axis=1)
     # Mostrar en Streamlit
     st.write(f"📊 **{titulo_semana}**")
     styled_df_html = style_dataframe_general(tabla_pagos).hide(axis='index').to_html()
@@ -537,7 +543,7 @@ data = {
     "Cantidad": [  total_evaluando,total_interesado,total_visitas, total_pp,  total_cargos,total_ventas],
 }
 df_resumen = pd.DataFrame(data)
-def style_dataframe(df):
+def style_dataframe1(df):
     return df.style.set_table_styles(
         [   
             {'selector': 'thead th',  # Estilos solo para las cabeceras
@@ -559,7 +565,7 @@ def style_dataframe(df):
         **{'text-align': 'center'}
     ) # Ocultar índice
 # Estilizar el DataFrame y mostrarlo en Streamlit como HTML
-styled_df_html3 = style_dataframe(df_resumen).hide(axis='index').to_html()
+styled_df_html3 = style_dataframe1(df_resumen).hide(axis='index').to_html()
 
 with col4:
     st.write(f"📊 **Resumen del día: {hoy_str}**")
