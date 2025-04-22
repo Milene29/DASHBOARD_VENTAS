@@ -422,7 +422,10 @@ with st.container():
                     # Aplicar estilos generales (bordes)
                     styles.append({
                         'selector': 'td, th',
-                        'props': [('border', '0.5px solid #001f54')]
+                       'props': [
+        ('border', '0.5px solid #001f54'),
+       ('height', '15px') # si deseas que todas tengan ese ancho
+    ]
                     })
         
                 # Aplicar estilos dinámicos a toda la tabla
@@ -522,7 +525,6 @@ with st.container():
         tabla_final = crear_tabla_asesores(df_corte, df)
                 # Mostrar la tabla en Streamlit
 
-        st.write("")
         st.write("")
         st.write("📊 **Gestión de Ventas por Asesor**")
 
