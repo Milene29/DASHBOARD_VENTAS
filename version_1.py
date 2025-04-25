@@ -438,7 +438,6 @@ with st.container():
             styled_df_html = style_dataframe_general(tabla_pagos).hide(axis='index').to_html()
             st.markdown(styled_df_html, unsafe_allow_html=True)
         # Función para filtrar el DataFrame y contar "Evaluando" e "Interesado"
-
         def cargar_datos_excel():
                 # Paso 1: Ejecutar el script `CORTE_2.PY`
             ruta_script = "CORTE_2.PY"
