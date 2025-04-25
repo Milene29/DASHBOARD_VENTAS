@@ -73,7 +73,7 @@ with col2:
     df['Convalidación'] = df_252['FLAG ACEPTO CONVA'] if agrupacion_seleccionada == "25.2" else df['Convalidación']
     df['Horario de Estudio'] = df_252['HORARIO DE ESTUDIO'] if agrupacion_seleccionada == "25.2" else df['Horario de Estudio']
     df['Tipo de Ingreso'] = df_252['TIPO DE INGRESO'] if agrupacion_seleccionada == "25.2" else df['Tipo de Ingreso']
-    df['Fecha de Pago'] = df_252['FECHA DE PAGO'] if agrupacion_seleccionada == "25.2" else df['Fecha de Pago']
+    df['Fecha de Pago'] = df_252['FECHA DE PAGO COMPLETO'] if agrupacion_seleccionada == "25.2" else df['Fecha de Pago']
     df['Asesor Homologado'] = df_252['ASESOR HOMOLOGADO'] if agrupacion_seleccionada == "25.2" else df['Asesor Homologado']
 
 with col3:
@@ -439,9 +439,6 @@ with st.container():
             st.markdown(styled_df_html, unsafe_allow_html=True)
         # Función para filtrar el DataFrame y contar "Evaluando" e "Interesado"
 
-
-
-        @st.cache_data
         def cargar_datos_excel():
                 # Paso 1: Ejecutar el script `CORTE_2.PY`
             ruta_script = "CORTE_2.PY"
